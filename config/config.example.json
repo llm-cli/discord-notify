@@ -1,0 +1,9 @@
+{
+  "discord": {
+    "userId": "YOUR_DISCORD_USER_ID"
+  },
+  "timeouts": {
+    "defaultAsk": 300000,
+    "maxAsk": 3600000
+  }
+}

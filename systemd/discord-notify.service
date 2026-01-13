@@ -1,0 +1,22 @@
+[Unit]
+Description=Discord Notify Daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/discord-notify-daemon
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+EnvironmentFile=%h/.config/discord-notify/.env
+
+# Security
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.discord-notify
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
