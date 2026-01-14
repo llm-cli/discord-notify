@@ -5,6 +5,17 @@ import { homedir } from "node:os";
 import type { SessionInfo } from "../shared/types.js";
 
 /**
+ * Check if a cmdline belongs to a Claude process
+ * Must check that "claude" is the actual command, not just part of a path
+ */
+function isClaudeProcess(cmdline: string): boolean {
+  // cmdline has args separated by spaces (after replacing \0)
+  // Check if first arg starts with "claude" or ends with "/claude"
+  const firstArg = cmdline.split(" ")[0];
+  return firstArg === "claude" || firstArg.endsWith("/claude");
+}
+
+/**
  * Resolve session info from the parent process (PPID)
  * This is called from the CLI to identify which Claude session is asking
  */
@@ -18,12 +29,12 @@ export async function resolveSessionInfo(): Promise<SessionInfo> {
 
   // Check if PPID is claude, or if we need to go up the process tree
   const cmdline = await getProcessCmdline(ppid);
-  if (!cmdline.includes("claude")) {
+  if (!isClaudeProcess(cmdline)) {
     // Try grandparent
     const grandparentPid = await getProcessPpid(ppid);
     if (grandparentPid) {
       const grandparentCmd = await getProcessCmdline(grandparentPid);
-      if (grandparentCmd.includes("claude")) {
+      if (isClaudeProcess(grandparentCmd)) {
         claudePid = grandparentPid;
         cwd = await getProcessCwd(grandparentPid) || cwd;
       }

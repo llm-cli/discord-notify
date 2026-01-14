@@ -120,16 +120,23 @@ export class DiscordHandler {
   private async processResponse(requestId: string, response: string): Promise<void> {
     const terminal = this.pendingManager.getTerminal(requestId);
 
-    // Check if process is still alive
-    if (terminal && !this.isProcessAlive(terminal.pid)) {
-      console.log(`[Discord] Process ${terminal.pid} is dead, attempting resume...`);
-      this.pendingManager.updateTerminalActive(requestId, false);
+    if (terminal) {
+      // Always try to inject via Kitty first (works if process is alive and window exists)
+      console.log(`[Discord] Trying to inject via Kitty for PID ${terminal.pid}...`);
+      const sent = await kittyControl.sendText(terminal.pid, response);
 
-      // Try to resume the session
-      if (terminal.sessionId) {
-        await this.resumeAndInject(terminal.sessionId, terminal.cwd, response);
+      if (sent) {
+        console.log(`[Discord] Successfully injected via Kitty`);
       } else {
-        console.log("[Discord] No sessionId available for resume");
+        // Injection failed - process dead or window not found, try to resume
+        console.log(`[Discord] Kitty injection failed, attempting resume...`);
+        this.pendingManager.updateTerminalActive(requestId, false);
+
+        if (terminal.sessionId) {
+          await this.resumeAndInject(terminal.sessionId, terminal.cwd, response);
+        } else {
+          console.log("[Discord] No sessionId available for resume");
+        }
       }
     }
 
