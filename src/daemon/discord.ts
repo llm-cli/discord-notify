@@ -118,12 +118,14 @@ export class DiscordHandler {
   }
 
   private async processResponse(requestId: string, response: string): Promise<void> {
+    // Prefix the response so Claude knows it comes from Discord
+    const prefixedResponse = `response from discord: ${response}`;
     const terminal = this.pendingManager.getTerminal(requestId);
 
     if (terminal) {
       // Always try to inject via Kitty first (works if process is alive and window exists)
       console.log(`[Discord] Trying to inject via Kitty for PID ${terminal.pid}...`);
-      const sent = await kittyControl.sendText(terminal.pid, response);
+      const sent = await kittyControl.sendText(terminal.pid, prefixedResponse);
 
       if (sent) {
         console.log(`[Discord] Successfully injected via Kitty`);
@@ -133,7 +135,7 @@ export class DiscordHandler {
         this.pendingManager.updateTerminalActive(requestId, false);
 
         if (terminal.sessionId) {
-          await this.resumeAndInject(terminal.sessionId, terminal.cwd, response);
+          await this.resumeAndInject(terminal.sessionId, terminal.cwd, prefixedResponse);
         } else {
           console.log("[Discord] No sessionId available for resume");
         }
@@ -141,7 +143,7 @@ export class DiscordHandler {
     }
 
     // Always set the response (CLI might still be waiting or it's stored for later)
-    this.pendingManager.setResponse(requestId, response);
+    this.pendingManager.setResponse(requestId, prefixedResponse);
   }
 
   private isProcessAlive(pid: number): boolean {
